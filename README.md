@@ -7,6 +7,8 @@ Siehe z.B. https://en.wikipedia.org/wiki/Sleeping_barber_problem
 * routes/friseur.js: schläft, wenn nichts zu tun ist; schneidet sonst Haare 
   und sieht im Wartezimmer nach neuer Kundschaft
 * routes/wartezimmer.js: im Wesentlichen eine Queue aller wartenden Personen
+* routes/lock.js: einfache Implementierung eines Lock-Mechanismus
+  (in diesem Kontext auch [Semaphore](https://en.wikipedia.org/wiki/Semaphore_(programming)) genannt)
   
 ## Client
 

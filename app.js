@@ -7,6 +7,7 @@ const app = express();
 const index = require('./routes/index');
 const friseur = require('./routes/friseur').router;
 const wartezimmer = require('./routes/wartezimmer');
+const lock = require('./routes/lock');
 
 // uncomment after placing your favicon in /public
 app.use(logger('dev'));
@@ -18,6 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', index);
 app.use('/friseur', friseur);
 app.use('/wartezimmer', wartezimmer);
+app.use('/lock', lock);
 
 
 // catch 404 and forward to error handler
