@@ -7,7 +7,7 @@ const app = express();
 const index = require('./routes/index');
 const friseur = require('./routes/friseur').router;
 const wartezimmer = require('./routes/wartezimmer');
-const lock = require('./routes/lock');
+const lock = require('./routes/lock').router;
 
 // uncomment after placing your favicon in /public
 app.use(logger('dev'));

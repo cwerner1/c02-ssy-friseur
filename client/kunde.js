@@ -1,5 +1,6 @@
 const Request = require('request');
 const FriseurStatus = require('../routes/friseur').FriseurStatus;
+const Lock = require('../routes/lock');
 
 const hostUrl = "http://127.0.0.1:3000";
 
@@ -9,31 +10,7 @@ let kundenId = process.argv.length < 3 ? 'kunde-' + Math.round(Math.random() * 5
 console.log("Meine Kunden-ID ist " + kundenId);
 
 // Start des Prozesses
-getLock();
-
-/**
- * Lock sichern [damit wir exklusiven Zugriff haben]
- */
-function getLock() {
-    Request.put({
-        url: hostUrl + "/lock",
-        json: {lockValue: true}
-    }, antwortVonLock);
-}
-
-
-/**
- * Antwort des Lock-Services auswerten
- * @param body "success" oder "error"
- */
-function antwortVonLock(error, response, body) {
-    if (body === "success") {
-        starteProzess();  // Erfolgreich --> dann legen wir los
-    } else {
-        setTimeout(getLock, 500);  // Fehler --> wir probieren es in 500ms noch mal
-    }
-}
-
+Lock.aquire(starteProzess);
 
 
 /**
@@ -69,18 +46,6 @@ function friseurAntwort(error, response, body) {
 }
 
 
-/**
- * Lock wieder freigeben, indem wir den Lock-Status auf false setzen
- * Antwort ignorieren wir.
- */
-function freeLock() {
-    Request.put({
-        url: hostUrl + '/lock',
-        json: { lockValue: false }
-    });
-}
-
-
 function friseurAufwecken(friseur) {
     friseur.status = FriseurStatus.schneidend;
     friseur.kunde = kundenId;
@@ -92,7 +57,7 @@ function friseurAufwecken(friseur) {
 
     function antwortVomAufwecken(error, response, body) {
         console.log("Friseur aufgewacht: " + body);
-        freeLock();
+        Lock.free();
     }
 }
 
@@ -105,6 +70,6 @@ function insWartezimmerGehen() {
 
     function antwortVomWartezimmer(error, response, body) {
         console.log("Ins Wartezimmer gegangen: " + body);
-        freeLock();
+        Lock.free();
     }
 }

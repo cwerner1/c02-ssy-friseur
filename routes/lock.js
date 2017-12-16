@@ -1,3 +1,4 @@
+const Request = require('request');
 const express = require('express');
 const router = express.Router();
 
@@ -31,4 +32,44 @@ function updateLock(request, response) {
     }
 }
 
-module.exports = router;
+
+/**
+ * Lock sichern [für exklusiven Zugriff]
+ * Falls fehlgeschlagen: solange weiterprobieren, bis es klappt
+ */
+function aquireLock(naechsterSchritt) {
+
+    let antwortVonLock = function (error, response, body) {
+        if (body === "success") {
+            naechsterSchritt();    // Erfolgreich --> dann legen wir los
+        } else {
+            // Fehler --> wir probieren es in 500ms noch mal
+            // Wir müssen den aquireLock-Aufruf in eine anonyme Funktion einpacken,
+            // weil setTimeout nur Funktionen ohne Parameter akzeptiert
+            setTimeout(function() { aquireLock(naechsterSchritt) }, 500);
+        }
+    };
+
+    Request.put({
+        url: "http://localhost:3000/lock",
+        json: { lockValue: true }
+    }, antwortVonLock);
+}
+
+/**
+ * Lock wieder freigeben, indem wir den Lock-Status auf false setzen
+ * Antwort ignorieren wir.
+ */
+function freeLock() {
+    Request.put({
+        url: 'http://localhost:3000/lock',
+        json: { lockValue: false }
+    });
+}
+
+
+module.exports = {
+    router: router,
+    aquire: aquireLock,
+    free: freeLock
+};
