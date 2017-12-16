@@ -8,11 +8,45 @@ let kundenId = process.argv.length < 3 ? 'kunde-' + Math.round(Math.random() * 5
 
 console.log("Meine Kunden-ID ist " + kundenId);
 
-// Wir schauen uns an, was der Friseur macht
-Request.get({
-    url: hostUrl + '/friseur',
-    json: true  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
-}, friseurAntwort);
+// Start des Prozesses
+getLock();
+
+/**
+ * Lock sichern [damit wir exklusiven Zugriff haben]
+ */
+function getLock() {
+    Request.put({
+        url: hostUrl + "/lock",
+        json: {lockValue: true}
+    }, antwortVonLock);
+}
+
+
+/**
+ * Antwort des Lock-Services auswerten
+ * @param body "success" oder "error"
+ */
+function antwortVonLock(error, response, body) {
+    if (body === "success") {
+        starteProzess();  // Erfolgreich --> dann legen wir los
+    } else {
+        setTimeout(getLock, 500);  // Fehler --> wir probieren es in 500ms noch mal
+    }
+}
+
+
+
+/**
+ * Nachschauen was der Friseur macht und dann aufwecken oder ins
+ * Wartezimmer gehen
+ */
+function starteProzess() {
+    // Wir schauen uns an, was der Friseur macht
+    Request.get({
+        url: hostUrl + '/friseur',
+        json: true  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
+    }, friseurAntwort);
+}
 
 
 function friseurAntwort(error, response, body) {
@@ -24,34 +58,53 @@ function friseurAntwort(error, response, body) {
     let friseur = body;
 
     if (friseur.status === FriseurStatus.schlafend) {
+        console.log("Der Friseur schläft...");
         friseurAufwecken(friseur);
     } else if (friseur.status === FriseurStatus.schneidend) {
+        console.log("Der Friseur ist beschäftigt...");
         setTimeout(insWartezimmerGehen, 200);   // wir gehen erst nach 200ms ins Wartezimmer
     } else {
         throw (new Error("unbekannter Friseur-Status"));
     }
 }
 
+
+/**
+ * Lock wieder freigeben, indem wir den Lock-Status auf false setzen
+ * Antwort ignorieren wir.
+ */
+function freeLock() {
+    Request.put({
+        url: hostUrl + '/lock',
+        json: { lockValue: false }
+    });
+}
+
+
 function friseurAufwecken(friseur) {
     friseur.status = FriseurStatus.schneidend;
     friseur.kunde = kundenId;
+
     Request.post({
         url: hostUrl + '/friseur',
         json: friseur
-    }, logResponse);
+    }, antwortVomAufwecken);
+
+    function antwortVomAufwecken(error, response, body) {
+        console.log("Friseur aufgewacht: " + body);
+        freeLock();
+    }
 }
 
 
 function insWartezimmerGehen() {
-
     Request.post({
         url: hostUrl + '/wartezimmer',
         json: {kundenId: kundenId}
-    }, logResponse);
-}
+    }, antwortVomWartezimmer);
 
-
-function logResponse(error, response, body) {
-    // nur zur Illustration geben wir die Response aus
-    console.log(body);
+    function antwortVomWartezimmer(error, response, body) {
+        console.log("Ins Wartezimmer gegangen: " + body);
+        freeLock();
+    }
 }
