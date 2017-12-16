@@ -16,7 +16,7 @@ function personHinzufuegen(req, res) {
     setTimeout(function() {
         wartezimmer.push(req.body);
         res.status(200).end();
-    }, 5);  // Wir verzögern die Antwort um 5ms
+    }, 200);  // Wir verzögern die Antwort nun um 200ms
 }
 
 router.get('/:warteNr', einzelnePersonAnzeigen);

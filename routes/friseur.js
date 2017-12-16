@@ -1,5 +1,6 @@
 const express = require('express');
 const Request = require('request');
+const Lock = require('./lock');
 const router = express.Router();
 
 let FriseurStatus = {
@@ -7,7 +8,7 @@ let FriseurStatus = {
     schneidend: "schneidend"
 };
 
-const dauerHaareSchneiden = 20; // Zeit in ms
+const dauerHaareSchneiden = 520; // Zeit in ms
 
 // Im Friseur-Objekt merken wir uns den Status des Friseurs
 // und (falls gerade vorhanden) welcher Kunde gerade bearbeitet wird.
@@ -42,6 +43,10 @@ function haareFertigGeschnitten() {
     friseur.kunde = null;
 
     // Schauen wir im Wartezimmer nach, ob jemand da ist
+    Lock.aquire(wartezimmerPruefen);
+}
+
+function wartezimmerPruefen() {
     Request.get({
         url: 'http://127.0.0.1:3000/wartezimmer',
         json: true   // wir setzen json-Wert immer, dann "weiß" das Framework, dass wir JSON als Antwort erwarten
@@ -55,7 +60,7 @@ function wartezimmerErgebnis(error, response, body) {
     }
 
     // Aktuelle Liste der Personen im Wartezimmer
-    console.log(body);
+    console.log("Wartezimmer:" + body);
 
     if (body.length == 0) {
         // Niemand da --> Friseur legt sich schlafen
@@ -67,6 +72,8 @@ function wartezimmerErgebnis(error, response, body) {
             json: true
         }, naechsterKunde);
     }
+
+    Lock.free();
 }
 
 function naechsterKunde(error, response, body) {
@@ -77,6 +84,7 @@ function naechsterKunde(error, response, body) {
     console.log('Neuen Kunden gefunden: ' + kunde.kundenId);
 
     friseur.kunde = kunde.kundenId;
+
     // nach einiger Zeit geht es weiter bei der Funktion haareFertigGeschnitten
     setTimeout(haareFertigGeschnitten, dauerHaareSchneiden);
 }
