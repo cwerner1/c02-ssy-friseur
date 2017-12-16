@@ -1,7 +1,7 @@
 const Request = require('request');
 const FriseurStatus = require('../routes/friseur').FriseurStatus;
 
-const hostUrl = "http://den.xmp.net:3000";
+const hostUrl = "http://localhost:3000";
 
 // Wir erzeugen eine zufällige Kunden-ID bzw. holen uns die aus der Kommandozeile
 let kundenId = process.argv.length < 3 ? 'kunde-' + Math.round(Math.random()*5000) : process.argv[2];
