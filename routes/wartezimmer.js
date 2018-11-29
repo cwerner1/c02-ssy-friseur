@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 
+// Das Wartezimmer ist eine Liste von Kunden
 let wartezimmer = [];
 
 router.get('/', wartezimmerListe);
 router.post('/', personHinzufuegen);
 
+// bei GET wird einfach die gesamte Liste ausgegeben
 function wartezimmerListe(req, res) {
     res.json(wartezimmer);
 }
@@ -13,7 +15,7 @@ function wartezimmerListe(req, res) {
 function personHinzufuegen(req, res) {
     setTimeout(function() {
         wartezimmer.push(req.body);
-        res.sendStatus(200);
+        res.status(200).end();
     }, 5);  // Wir verzögern die Antwort um 5ms
 }
 
@@ -32,7 +34,7 @@ function einzelnePersonLoeschen(req, res) {
     console.log("Wartezimmer DEL " + req.params.warteNr);
 
     // Wir sind schlampig und löschen immer die erste Person im Array,
-    // egal welche Nummer wir erhalten
+    // egal welche Nummer wir erhalten. Damit funktioniert das Array wie eine Queue.
     let kunde = wartezimmer.shift();
     res.json(kunde);
 }
