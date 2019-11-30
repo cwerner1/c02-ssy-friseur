@@ -7,7 +7,7 @@ let FriseurStatus = {
     schneidend: "schneidend"
 };
 
-const dauerHaareSchneiden = 5000; // Zeit in ms
+const dauerHaareSchneiden = 200; // Zeit in ms
 
 // Im Friseur-Objekt merken wir uns den Status des Friseurs
 // und (falls gerade vorhanden) welcher Kunde gerade bearbeitet wird.
@@ -58,7 +58,7 @@ function AquireLock() {
                 json: true   // wir setzen json-Wert immer, dann "weiß" das Framework, dass wir JSON als Antwort erwarten
             }, wartezimmerErgebnis);
         } else {
-            setTimeout(AquireLock, 500);
+            setTimeout(AquireLock, 50);
         }
     }
 }
