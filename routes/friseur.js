@@ -7,7 +7,7 @@ let FriseurStatus = {
     schneidend: "schneidend"
 };
 
-const dauerHaareSchneiden = 20; // Zeit in ms
+const dauerHaareSchneiden = 5000; // Zeit in ms
 
 // Im Friseur-Objekt merken wir uns den Status des Friseurs
 // und (falls gerade vorhanden) welcher Kunde gerade bearbeitet wird.
@@ -42,12 +42,26 @@ function haareFertigGeschnitten() {
     friseur.kunde = null;
 
     // Schauen wir im Wartezimmer nach, ob jemand da ist
-    Request.get({
-        url: 'http://127.0.0.1:3000/wartezimmer',
-        json: true   // wir setzen json-Wert immer, dann "weiß" das Framework, dass wir JSON als Antwort erwarten
-    }, wartezimmerErgebnis);
+    AquireLock();
 }
 
+function AquireLock() {
+    Request.put({
+        url: 'http://127.0.0.1:3000/wartezimmer/lock',
+        json: {lock: true}  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
+    }, lockAntwort);
+
+    function lockAntwort(error, responsem, body) {
+        if (responsem.statusCode == 200) {
+            Request.get({
+                url: 'http://127.0.0.1:3000/wartezimmer',
+                json: true   // wir setzen json-Wert immer, dann "weiß" das Framework, dass wir JSON als Antwort erwarten
+            }, wartezimmerErgebnis);
+        } else {
+            setTimeout(AquireLock, 500);
+        }
+    }
+}
 
 function wartezimmerErgebnis(error, response, body) {
     if (error) {
@@ -67,6 +81,11 @@ function wartezimmerErgebnis(error, response, body) {
             json: true
         }, naechsterKunde);
     }
+    Request.put({
+        url: 'http://127.0.0.1:3000/wartezimmer/lock',
+        json: {lock: false}  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
+    });
+
 }
 
 function naechsterKunde(error, response, body) {

@@ -7,13 +7,32 @@ const hostUrl = "http://127.0.0.1:3000";
 let kundenId = process.argv.length < 3 ? 'kunde-' + Math.round(Math.random() * 5000) : process.argv[2];
 
 console.log("Meine Kunden-ID ist " + kundenId);
+acquireLock();
 
+function acquireLock() {
+    Request.put({
+        url: hostUrl + '/wartezimmer/lock',
+        json: {lock: true}  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
+    }, lockAntwort);
+
+    function lockAntwort(err, resp, body) {
+        if (resp.statusCode === 400) {
+            setTimeout(acquireLock,400);
+        } else {
+            haareSchneiden();
+        }
+    }
+
+}
+
+
+function haareSchneiden() {
 // Wir schauen uns an, was der Friseur macht
-Request.get({
-    url: hostUrl + '/friseur',
-    json: true  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
-}, friseurAntwort);
-
+    Request.get({
+        url: hostUrl + '/friseur',
+        json: true  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
+    }, friseurAntwort);
+}
 
 function friseurAntwort(error, response, body) {
     if (error) {
@@ -30,6 +49,7 @@ function friseurAntwort(error, response, body) {
     } else {
         throw (new Error("unbekannter Friseur-Status"));
     }
+
 }
 
 function friseurAufwecken(friseur) {
@@ -53,5 +73,8 @@ function insWartezimmerGehen() {
 
 function logResponse(error, response, body) {
     // nur zur Illustration geben wir die Response aus
-    console.log(body);
+    Request.put({
+        url: hostUrl + '/wartezimmer/lock',
+        json: {lock: false}  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
+    });
 }
