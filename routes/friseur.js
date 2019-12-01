@@ -40,12 +40,28 @@ function aktualisiereFriseur(req, res) {
 function haareFertigGeschnitten() {
     console.log("Fertig! ... und ab mit dir " + friseur.kunde);
     friseur.kunde = null;
+    acquireLock();
 
-    // Schauen wir im Wartezimmer nach, ob jemand da ist
-    Request.get({
-        url: 'http://127.0.0.1:3000/wartezimmer',
-        json: true   // wir setzen json-Wert immer, dann "weiß" das Framework, dass wir JSON als Antwort erwarten
-    }, wartezimmerErgebnis);
+    function acquireLock() {
+        Request.put({
+            url: 'http://127.0.0.1:3000/wartezimmer/lock',
+            json: { lock: true }
+        }, lockResponse);
+
+        function lockResponse(err, resp, body) {
+            if (resp.statusCode === 200) {
+                // wir haben Lock
+                // Schauen wir im Wartezimmer nach, ob jemand da ist
+                Request.get({
+                    url: 'http://127.0.0.1:3000/wartezimmer',
+                    json: true   // wir setzen json-Wert immer, dann "weiß" das Framework, dass wir JSON als Antwort erwarten
+                }, wartezimmerErgebnis);
+            } else {
+                // Lock besetzt
+                setTimeout(acquireLock, 100); // nach 100ms: erneut versuchen
+            }
+        }
+    }
 }
 
 
@@ -67,6 +83,12 @@ function wartezimmerErgebnis(error, response, body) {
             json: true
         }, naechsterKunde);
     }
+
+    // Lock frei
+    Request.put({
+        url: 'http://127.0.0.1:3000/wartezimmer/lock',
+        json: { lock: false }
+    });
 }
 
 function naechsterKunde(error, response, body) {
