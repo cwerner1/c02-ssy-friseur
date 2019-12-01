@@ -3,6 +3,20 @@ const router = express.Router();
 
 // Das Wartezimmer ist eine Liste von Kunden
 let wartezimmer = [];
+let locked = false;
+
+router.put('/lock', changeLock);
+
+function changeLock(req, res) {
+    let newValue = req.body.lock;  // { "lock": true/false }
+    if (locked !== newValue) {
+        locked = newValue;
+        res.status(200).end();
+    } else {
+        res.status(400).end();
+    }
+}
+
 
 router.get('/', wartezimmerListe);
 router.post('/', personHinzufuegen);
