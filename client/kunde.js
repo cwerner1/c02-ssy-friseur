@@ -8,11 +8,28 @@ let kundenId = process.argv.length < 3 ? 'kunde-' + Math.round(Math.random() * 5
 
 console.log("Meine Kunden-ID ist " + kundenId);
 
-// Wir schauen uns an, was der Friseur macht
-Request.get({
-    url: hostUrl + '/friseur',
-    json: true  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
-}, friseurAntwort);
+acquireLock();
+
+function acquireLock() {
+    Request.put({
+        url: 'http://127.0.0.1:3000/wartezimmer/lock',
+        json: { lock: true }
+    }, lockResponse);
+
+    function lockResponse(err, resp, body) {
+        if (resp.statusCode === 200) {
+            // wir haben Lock
+            // Wir schauen uns an, was der Friseur macht
+            Request.get({
+                url: hostUrl + '/friseur',
+                json: true  // damit signalisieren wir, dass die Antwort automatisch als JSON interpretiert werden soll.
+            }, friseurAntwort);
+        } else {
+            // Lock besetzt
+            setTimeout(acquireLock, 100); // nach 100ms: erneut versuchen
+        }
+    }
+}
 
 
 function friseurAntwort(error, response, body) {
@@ -43,7 +60,6 @@ function friseurAufwecken(friseur) {
 
 
 function insWartezimmerGehen() {
-
     Request.post({
         url: hostUrl + '/wartezimmer',
         json: {kundenId: kundenId}
@@ -54,4 +70,10 @@ function insWartezimmerGehen() {
 function logResponse(error, response, body) {
     // nur zur Illustration geben wir die Response aus
     console.log(body);
+
+    // Lock freigeben
+    Request.put({
+        url: 'http://127.0.0.1:3000/wartezimmer/lock',
+        json: { lock: false }
+    });
 }
